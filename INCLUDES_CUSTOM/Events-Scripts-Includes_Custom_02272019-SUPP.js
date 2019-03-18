@@ -1,3 +1,4 @@
+// 3/18/2019: Updated Function calculateAppPenaltyFee() to assess Rental Housing Penalty Fees.
 // 12/14/2018: Added functions: addParameter() & getRecordParams4Notification() & sendNotification()
 // 12/7/2018: Added line 1747 to assess penalty Fees for OAC License App.
 // 10/18/2018: Added relatePublicUserToLicense function 
@@ -1712,10 +1713,11 @@ function getFeeCount(fCode) {
 	return retValue;
 }
 
-
-function calculateAppPenaltyFee() {
-
-	penalizedSubGroup = "PG";
+function calculateAppPenaltyFee() {													
+//This function updated to assess multiple Penalty Fees if ASI field "Start Date" is in the past. (Previous versions of this script in GitHub)
+         aa.print("Start - Function - calculateAppPenaltyFee_SLS");
+	
+         penalizedSubGroup = "PG";
 	var feeSchedule = aa.finance.getFeeScheduleByCapID(capId).getOutput()
 
 	baseFees = new Array();
@@ -1745,31 +1747,8 @@ function calculateAppPenaltyFee() {
 	licenseFees["Vehicle for Hire Owner"] = "TXIB030";		// qty is ASI "Number of Vehicles
 	licenseFees["Tobacco Retailer"] = "TOBCO030";
 	licenseFees["Tow Owner"] = "TOWB030";
-	licenseFees["Out of Area Contractor"] = "GEN010";			//added 12/7/18 for Out of City Contractor App
+    licenseFees["Out of Area Contractor"] = "GEN010";			//added 12/7/18 for Out of City Contractor App
 	
-	renewalFees = new Array();
-	renewalFees["General"] = "BL_GEN_RENEW;GENR010";		// qty is ASI "# of People Working in Lancaster"
-	renewalFees["Alcohol"] = "BL_GEN_RENEW;GENR010";		// qty is ASI "# of People Working in Lancaster"
-	renewalFees["Internet Lounge"] = "BL_GEN_RENEW;GENR010";		// qty is ASI "# of People Working in Lancaster"
-	renewalFees["Newsrack"] = "BL_GEN_RENEW;GENR010";
-	renewalFees["Street Performer"] = "BL_GEN_RENEW;GENR010";		// qty is ASI "# of People Working in Lancaster"
-	renewalFees["Bingo"] = "BINGO_RENEW;BNGOR020";
-	renewalFees["Fortune Teller"] = "FRTL_RENEW;FRTLR020";
-	renewalFees["Group Home"] = "GH_RENEW;GHR020";
-	renewalFees["Massage Business Permit"] = "MSGO_RENEW;MSGOR020";
-	renewalFees["Massage Technician Permit"] = "MSGT_RENEW;MSGTR020"
-	renewalFees["Pawn Shop - Second Hand Dealer"] = "PWN_RENEW;PWNR010";
-	renewalFees["Rental Housing"] = "RNTH_RENEW;RNTHR010";	
-	renewalFees["Salon Rental"] = "SRNTL_RENEW;SRNTLR010";	// uses fee indicator
-	renewalFees["Taxi Driver"] = "TAXTOWD_RENEW;TAXTOWDR020";
-	renewalFees["Vehicle For Hire Driver"] = "TAXTOWD_RENEW;TAXTOWDR020";
-	renewalFees["Tow Driver"] = "TAXTOWD_RENEW;TAXTOWDR020";
-	renewalFees["Taxi Owner"] = "TXIB_RENEW;TXIBR020";		// qty is ASI "Number of Vehicles
-	renewalFees["Vehicle For Hire Owner"] = "TXIB_RENEW;TXIB030";		// qty is ASI "Number of Vehicles
-	renewalFees["Tobacco Retailer"] = "TOBACCO_RENEW;TOBCOR010";
-	renewalFees["Tow Owner"] = "TOWB_RENEW;TOWBR020";
-
-
 	processingFees = new Array();
 	processingFees["General"] = "GEN090";
 	processingFees["Alcohol"] = "GEN090";
@@ -1782,177 +1761,110 @@ function calculateAppPenaltyFee() {
 	processingFees["Tobacco Retailer"] = "TOBCO011";
 	processingFees["Salon Rental"] = "SRNTL040";
 
-
-	SBFees = new Array();
-	SBFees["General"] = "GEN050";
-	SBFees["Alcohol"] = "GEN050";
-	SBFees["Internet Lounge"] = "GEN050";
-	SBFees["Newsrack"] = "GEN050";
-	SBFees["Street Performer"] = "GEN050";
-	SBFees["Bingo"] = "BNGO020";
-	SBFees["Fortune Teller"] = "FRTL020";
-	SBFees["Group Home"] = "GH020";
-	SBFees["Massage Business Permit"] = "MSGO20";
-	SBFees["Massage Technician Permit"] = "MSGT020";
-	SBFees["Pawn Shop - Second Hand Dealer"] = "PWN020";
-	SBFees["Rental Housing"] = "RNTH030";
-	SBFees["Salon Rental"] = "SRNTL020";
-	SBFees["Taxi Driver"] = "TAXTOWD020";
-	SBFees["Vehicle for Hire Driver"] = "TAXTOWD020";
-	SBFees["Tow Driver"] = "TAXTOWD020";
-	SBFees["Taxi Owner"] = "TXIB020";
-	SBFees["Vehicle for Hire Owner"] = "TXIB020";
-	SBFees["Tobacco Retailer"] = "TOBCO020";
-	SBFees["Tow Owner"] = "TOWB020"
-
 	try {
-	var date1 = null;
-	licType = "" + appTypeArray[2];
-	if (licType == "Rental Housing")
-		date1 = convertDate(AInfo['Purchase Date or Rental Start Date']);
-	else
-		date1 = convertDate(AInfo["Business Open Date"]);
-	logDebug("Business Open Date: "+date1);
-	nonProfit = false;
-	if (licType == "General" && AInfo["Business Ownership Type"] == "Non-Profit") nonProfit = true;
-	if (licType == "Group Home" && AInfo["Is the Group Home licensed by the State of California?"] == "Yes") nonProfit = true;
-	
-	if (date1) {
+		var date1 = null;
 		licType = "" + appTypeArray[2];
-		var monthsLate = calcMonthsLate(date1);
-		logDebug("Months late = " + monthsLate);
-		if (monthsLate > 0) {
+		
+		if (licType == "Rental Housing")
+			date1 = convertDate(AInfo['Purchase Date or Rental Start Date']);
+		else
+			date1 = convertDate(AInfo["Business Open Date"]);
+			logDebug("Business Open Date: "+date1); 
+			aa.print("Business Open Date: "+date1);
+			nonProfit = false;
+	
+		if (licType == "General" && AInfo["Business Ownership Type"] == "Non-Profit") nonProfit = true;
+		if (licType == "Group Home" && AInfo["Is the Group Home licensed by the State of California?"] == "Yes") nonProfit = true;
+	
+		if (date1) {
+			licType = "" + appTypeArray[2];
+			var monthsLate = calcMonthsLate(date1);																					
+			logDebug("Months late = " + monthsLate);
+			aa.print("Months late = " + monthsLate);
 			penalizedAmount = 0;
+			
+//Get Penalized Amount from baseFees			
 			if (matches(licType, "Rental Housing", "Taxi Owner", "Vehicle for Hire Owner", "Tow Owner")) {
 				refFeeItem = getFeeDefByCode(feeSchedule, baseFees[licType]);
-				penalizedAmount = parseFloat(refFeeItem.formula);
+				penalizedAmount = parseFloat(refFeeItem.formula);																		
 			}
 			else {
 				penalizedAmount = getSubGrpFeeAmt("PG"); // this needs to only be the amt of the FIRST license fee. Maybe divide by number of times the fee exists?
-				if (penalizedAmount > 0) penalizedAmount = penalizedAmount / getFeeCount(licenseFees[licType]);
+//				if (penalizedAmount > 0) penalizedAmount = (penalizedAmount / getFeeCount(licenseFees[licType]));
 			}
-			renewFeeInfo = "" + renewalFees[licType];
-			renewFeePieces = renewFeeInfo.split(";");
-			if (renewFeePieces.length == 2) {
-				renewFeeSchedule = renewFeePieces[0];
-				renewFeeCode = renewFeePieces[1];
-			}
-			else { renewFeeSchedule = null; renewFeeCode = null;  }  // bad
-			logDebug("Renewal fee code = " + renewFeeCode);
-			logDebug("Renewal fee schedule = " + renewFeeSchedule);
+
 			logDebug("Penalized amount = " + penalizedAmount);
-			if (penalizedAmount >= 0) {
-				if (penalizedAmount > 0) {
-					if(monthsLate >= 1) addFee("BLPN010","BL_PENALTY","FINAL",penalizedAmount,"Y"); // 20%
-					if(monthsLate >= 2) addFee("BLPN020","BL_PENALTY","FINAL",penalizedAmount,"Y"); // 30%
-					if(monthsLate >= 3) addFee("BLPN030","BL_PENALTY","FINAL",penalizedAmount,"Y"); // 40%
-					if(monthsLate >= 4) addFee("BLPN040","BL_PENALTY","FINAL",penalizedAmount,"Y"); // 50%
-				}
+			aa.print("Penalized amount = " + penalizedAmount);		
 
-				if (monthsLate >= 12) {
-					// add first instance of license renewal fee, process fee and SB1186 fee
-					if (matches(licType, "General", "Group Home")) {
-						if (!nonProfit)  { 
-							addFeeFromSchFromASI("# of People Working in Lancaster",renewFeeCode, renewFeeSchedule);
-							if (processingFees[licType]) addFee(processingFees[licType], feeSchedule, "FINAL", 1, "Y");
-						}
-					}
-					else {
-						if (matches(licType, "Alcohol", "Internet Lounge",  "Street Performer")) {
-							addFeeFromSchFromASI("# of People Working in Lancaster",renewFeeCode, renewFeeSchedule);		
-						}
-						else {
-							if (licType == "Rental Housing") addFeeFromSchFromASI("Total Number of Dwelling Units",renewFeeCode, renewFeeSchedule);
-							else {
-								if (matches(licType, "Taxi Owner", "Vehicle for Hire Owner")) addFeeFromSchFromASI("Number of Vehicles (Fee Associated)",renewFeeCode, renewFeeSchedule)
-								else {
-									if (licType == "Tow Owner") addFeeFromSchFromASI("Number of Vehicles Operating in Lancaster", renewFeeCode, renewalFeeSchedule);
-									else addFee(renewFeeCode, renewFeeSchedule, "FINAL", 1, "Y");
-								}
-							}
-						}
-						if (processingFees[licType]) addFee(processingFees[licType], feeSchedule, "FINAL", 1, "Y");
-					}
-					if (SBFees[licType]) addFee(SBFees[licType], feeSchedule, "FINAL", 1, "Y"); 
-				}
-			
-				if (penalizedAmount > 0) {
-					if (monthsLate >= 13) addFee("BLPN010","BL_PENALTY","FINAL",penalizedAmount,"Y"); // 20%
-					if (monthsLate >= 14) addFee("BLPN020","BL_PENALTY","FINAL",penalizedAmount,"Y"); // 30%
-					if (monthsLate >= 15) addFee("BLPN030","BL_PENALTY","FINAL",penalizedAmount,"Y"); // 40%
-					if (monthsLate >= 16) addFee("BLPN040","BL_PENALTY","FINAL",penalizedAmount,"Y"); // 50%
-				}
-
-				if (monthsLate >= 24) {
-					// add second instance of license renewal fee, process fee and SB1186
-					if (matches(licType, "General", "Group Home")) {
-						if (!nonProfit)  { 
-							addFeeFromSchFromASI("# of People Working in Lancaster",renewFeeCode, renewFeeSchedule);
-							if (processingFees[licType]) addFee(processingFees[licType], feeSchedule, "FINAL", 1, "Y");
-						}
-					}
-					else {
-						if (matches(licType, "Alcohol", "Internet Lounge",  "Street Performer")) {
-							addFeeFromSchFromASI("# of People Working in Lancaster",renewFeeCode, renewFeeSchedule);		
-						}
-						else {
-							if (licType == "Rental Housing") addFeeFromSchFromASI("Total Number of Dwelling Units",renewFeeCode, renewFeeSchedule);
-							else {
-								if (matches(licType, "Taxi Owner", "Vehicle for Hire Owner")) addFeeFromSchFromASI("Number of Vehicles (Fee Associated)",renewFeeCode, renewFeeSchedule)
-								else {
-									if (licType == "Tow Owner") addFeeFromSchFromASI("Number of Vehicles Operating in Lancaster", renewFeeCode, renewalFeeSchedule);
-									else addFee(renewFeeCode, renewFeeSchedule, "FINAL", 1, "Y");
-								}
-							}
-						}
-						if (processingFees[licType]) addFee(processingFees[licType], feeSchedule, "FINAL", 1, "Y");
-					}
-					if (SBFees[licType]) addFee(SBFees[licType], feeSchedule, "FINAL", 1, "Y"); 
-				}
-				if (penalizedAmount > 0) {
-					if (monthsLate >= 25) addFee("BLPN010","BL_PENALTY","FINAL",penalizedAmount,"Y"); // 20%
-					if (monthsLate >= 26) addFee("BLPN020","BL_PENALTY","FINAL",penalizedAmount,"Y"); // 30%
-					if (monthsLate >= 27) addFee("BLPN030","BL_PENALTY","FINAL",penalizedAmount,"Y"); // 40%
-					if (monthsLate >= 28) addFee("BLPN040","BL_PENALTY","FINAL",penalizedAmount,"Y"); // 50%
-				}
-
-				if (monthsLate >= 36) {
-					// add third instance of license renewal fee, process fee and SB1186
-					if (matches(licType, "General", "Group Home")) {
-						if (!nonProfit)  { 
-							addFeeFromSchFromASI("# of People Working in Lancaster",renewFeeCode, renewFeeSchedule);
-							if (processingFees[licType]) addFee(processingFees[licType], feeSchedule, "FINAL", 1, "Y");
-						}
-					}
-					else {
-						if (matches(licType, "Alcohol", "Internet Lounge",  "Street Performer")) {
-							addFeeFromSchFromASI("# of People Working in Lancaster",renewFeeCode, renewFeeSchedule);		
-						}
-						else {
-							if (licType == "Rental Housing") addFeeFromSchFromASI("Total Number of Dwelling Units",renewFeeCode, renewFeeSchedule);
-							else {
-								if (matches(licType, "Taxi Owner", "Vehicle for Hire Owner")) addFeeFromSchFromASI("Number of Vehicles (Fee Associated)",renewFeeCode, renewFeeSchedule)
-								else {
-									if (licType == "Tow Owner") addFeeFromSchFromASI("Number of Vehicles Operating in Lancaster", renewFeeCode, renewalFeeSchedule);
-									else addFee(renewFeeCode, renewFeeSchedule, "FINAL", 1, "Y");
-								}
-							}
-						}
-						if (processingFees[licType]) addFee(processingFees[licType], feeSchedule, "FINAL", 1, "Y");
-					}
-					if (SBFees[licType]) addFee(SBFees[licType], feeSchedule, "FINAL", 1, "Y"); 
-				}
-				if (penalizedAmount > 0) {
-					if (monthsLate >= 37) addFee("BLPN010","BL_PENALTY","FINAL",penalizedAmount,"Y"); // 20%
-					if (monthsLate >= 38) addFee("BLPN020","BL_PENALTY","FINAL",penalizedAmount,"Y"); // 30%
-					if (monthsLate >= 39) addFee("BLPN030","BL_PENALTY","FINAL",penalizedAmount,"Y"); // 40%
+//Add fees at all times: Processing Fees; 
+			if (matches(licType, "General", "Group Home")) {															                
+				aa.print("Matches App Type General or Group Home");//								
+				if (!nonProfit)  { 																					        			
+					aa.print("!nonProfit");//
+					//addFeeFromSchFromASI("# of People Working in Lancaster",renewFeeCode, renewFeeSchedule);
+					if (processingFees[licType]) addFee(processingFees[licType], feeSchedule, "FINAL", 1, "Y");			
 				}
 			}
-		}
-	}
-	} 
-	catch (err) { logDebug("Error calculating penalty fee : " + err); }
+			else {																														
+				aa.print("DOES NOT Match App Type General or Group Home");//
+				if (processingFees[licType]) {
+					addFee(processingFees[licType], feeSchedule, "FINAL", 1, "Y");										                
+					aa.print("Processing Fee for this Lic Type Exists - adding fee");//
+				}
+			}
+
+			if (penalizedAmount > 0) {														
+				aa.print("Start - penalizedAmount >0");
+				if (matches(licType, "Rental Housing")){
+					if(monthsLate >= 1) {addFee("RHP010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**1st 20%");}// 20%						
+					if(monthsLate >= 2) {addFee("RHP020","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**1st 30%");}// 30%
+					if(monthsLate >= 3) {addFee("RHP030","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**1st 40%");}// 40%
+					if(monthsLate >= 4) {addFee("RHP040","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**1st 50%");}// 50%  
+				
+					if(monthsLate >= 13) {addFee("RHP010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**2nd 20%");}// 20% 
+					if(monthsLate >= 14) {addFee("RHP020","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**2nd 30%");}// 30%
+					if(monthsLate >= 15) {addFee("RHP030","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**2nd 40%");}// 40%
+					if(monthsLate >= 16) {addFee("RHP040","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**2nd 50%");}// 50%  
+				
+					if(monthsLate >= 25) {addFee("RHP010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**3rd 20%");}// 20%
+					if(monthsLate >= 26) {addFee("RHP020","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**3rd 30%");}// 30%
+					if(monthsLate >= 27) {addFee("RHP030","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**3rd 40%");}// 40%
+					if(monthsLate >= 28) {addFee("RHP040","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**3rd 50%");}// 50%
+				
+					if(monthsLate >= 37) {addFee("RHP010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 20%");}// 20%
+					if(monthsLate >= 38) {addFee("RHP020","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 30%");}// 30%
+					if(monthsLate >= 39) {addFee("RHP030","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 40%");}// 40%
+					if(monthsLate >= 40) {addFee("RHP040","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 50%");}// 50%    
+				}
+				else{			
+					if(monthsLate >= 1) {addFee("BLPN010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**1st 20%");} // 20%
+					if(monthsLate >= 2) {addFee("BLPN020","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**1st 30%");} // 30%
+					if(monthsLate >= 3) {addFee("BLPN030","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**1st 40%");} // 40%
+					if(monthsLate >= 4) {addFee("BLPN040","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**1st 50%");} // 50%
+				
+					if(monthsLate >= 13) {addFee("BLPN010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**2nd 20%");} // 20%
+					if(monthsLate >= 14) {addFee("BLPN020","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**2nd 30%");} // 30%
+					if(monthsLate >= 15) {addFee("BLPN030","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**2nd 40%");} // 40%
+					if(monthsLate >= 16) {addFee("BLPN040","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**2nd 50%");} // 50%
+				
+					if(monthsLate >= 25) {addFee("BLPN010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**3rd 20%");} // 20%
+					if(monthsLate >= 26) {addFee("BLPN020","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**3rd 30%");} // 30%
+					if(monthsLate >= 27) {addFee("BLPN030","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**3rd 40%");} // 40%
+					if(monthsLate >= 28) {addFee("BLPN040","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**3rd 50%");} // 50%
+				
+					if(monthsLate >= 37) {addFee("BLPN010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 20%");} // 20%
+					if(monthsLate >= 38) {addFee("BLPN020","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 30%");} // 30%
+					if(monthsLate >= 39) {addFee("BLPN030","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 40%");} // 40%
+					if(monthsLate >= 40) {addFee("BLPN040","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 50%");} // 50%
+				} 						
+			}	aa.print("End - penalizedAmount >0");	 																																															aa.print("line 189");//
+		} 																												
+	} catch (err) { 
+		logDebug("Error calculating penalty fee : " + err); 
+		aa.print("Error calculating penalty fee : " + err); 
+	}	aa.print("End - Function - calculateAppPenaltyFee_SLS");																												
 }
+
 
 function getParentCapVIAPartialCap(capid)
 {
@@ -3727,105 +3639,3 @@ function addObjPropertiesToMsg(obj){
     }
   return thisMsg;
 }
-
-function externalLP_CA_AT_Pageflow(licNum,rlpType,itemCap) {
-	logDebug("starting externalLP_CA_AT_Pageflow with:");
-	logDebug("licNum:"+licNum);
-	logDebug("rlpType:"+rlpType);
-	logDebug("itemCap:"+itemCap);
-	/*
-	Version: 10
-
-	Usage:
-
-		licNum	:  Valid CA license number.   Non-alpha, max 8 characters.  If null, function will use the LPs on the supplied CAP ID
-		rlpType	:  License professional type to use when validating and creating new LPs
-		itemCap	:  should be type CapModel.  If supplied, licenses on the CAP will be validated.  Also will be refreshed if doPopulateRef and doPopulateTrx are true
-
-	returns: non-null string of status codes for invalid licenses
-
-	most of the time in pageflow script you will use this to check all LPs added, so you do not need
-	to pass the licNum and should set it to null, but DO pass the capModel (itemCap)
-
-	*/
-	var returnMessage = "";
-
-	var workArray = new Array();
-	if (licNum)
-		workArray.push(String(licNum));
-
-	if (itemCap)
-	{
-		/* below is how to get LPs for ACA */
-        var lpList = itemCap.getLicenseProfessionalList();
-        if(lpList != null && lpList.size() > 0)
-        {
-            for(var i=lpList.size(); i > 0; i--)
-            {
-                var lpModel = lpList.get(i-1);
-				workArray.push(lpModel);
-            }
-        }
-	}
-
-	for (var thisLic = 0; thisLic < workArray.length; thisLic++) {
-		var licNum = workArray[thisLic];
-		var licObj = null;
-		var isObject = false;
-		
-		// is this one an object or string?
-		if (typeof(licNum) == "object") {
-			licObj = licNum;
-			licNum = licObj.getLicenseNbr();
-			isObject = true;
-		}
-
-		// Make the call to the California State License Board
-
-		var document;
-		var root;        
-		var aURLArgList = "https://www2.cslb.ca.gov/IVR/License+Detail.aspx?LicNum=" + licNum;
-		var vOutObj = aa.httpClient.get(aURLArgList);
-		var isError = false;
-		if (vOutObj.getSuccess()) {
-			var vOut = vOutObj.getOutput();
-			var sr =  aa.proxyInvoker.newInstance("java.io.StringBufferInputStream", new Array(vOut)).getOutput();
-			var saxBuilder = aa.proxyInvoker.newInstance("org.jdom.input.SAXBuilder").getOutput();
-			document = saxBuilder.build(sr);
-			root = document.getRootElement();
-			errorNode = root.getChild("Error");
-		}
-		else{
-			isError = true;
-		}
-		if (isError) {
-			logDebug("The CSLB web service is currently unavailable");
-			continue;
-		}
-		else if (errorNode) {
-			logDebug("Error for license " + licNum + " : " + errorNode.getText().replace(/\+/g," "));
-			returnMessage+="License " + licNum +  " : " + errorNode.getText().replace(/\+/g," ") + " ";
-			continue;
-		}
-
-		var lpStatus = root.getChild("PrimaryStatus");
-		var stas     = lpStatus.getChildren();
-		var stasSize = stas.size();
-
-		if ( stasSize > 0 ) {
-			var sta = stas.get(0);  // we will always only evaluate the first status code
-
-			// Primary Status
-			// 3 = expired, 10 = good, 11 = inactive, 1 = canceled.   We will ignore all but 10 and return text.
-			if (sta.getAttribute("Code").getValue() != "10") {
-				returnMessage+="License:" + licNum + ", " + sta.getAttribute("Desc").getValue() + " ";
-			}
-			else {
-				logDebug("the license number searched is good! equals 10!!!!");
-			}
-		}
-	} // for each license
-
-	if (returnMessage.length > 0) return returnMessage;
-	else return null;
-} // end function
