@@ -1,4 +1,5 @@
 // 3/18/2019: Updated Function calculateAppPenaltyFee() to assess Rental Housing Penalty Fees.
+// 2/14/2019: added functions  createRefContactsFromCapContactsAndLink_SLS() and comparePeopleGeneric_SLS() to link Ref contacts to Lic Contacts
 // 12/14/2018: Added functions: addParameter() & getRecordParams4Notification() & sendNotification()
 // 12/7/2018: Added line 1747 to assess penalty Fees for OAC License App.
 // 10/18/2018: Added relatePublicUserToLicense function 
