@@ -1,7 +1,9 @@
-// 3/18/2019: Updated Function calculateAppPenaltyFee() to assess Rental Housing Penalty Fees.
-// 2/14/2019: added functions  createRefContactsFromCapContactsAndLink_SLS() and comparePeopleGeneric_SLS() to link Ref contacts to Lic Contacts
+// 04/02/2019: adding sendChadAnEmailofEnvVars(emlFrom, emlSubj) to debug the relayPayment functions.  Will remove when done.
+// 03/27/2019: add function getAddressParam4Notification() (replaces getPrimaryAddressLineParam4Notification() in some instances)
+// 03/18/2019: Updated Function calculateAppPenaltyFee() to assess Rental Housing Penalty Fees.
+// 02/14/2019: added functions  createRefContactsFromCapContactsAndLink_SLS() and comparePeopleGeneric_SLS() to link Ref contacts to Lic Contacts
 // 12/14/2018: Added functions: addParameter() & getRecordParams4Notification() & sendNotification()
-// 12/7/2018: Added line 1747 to assess penalty Fees for OAC License App.
+// 12/07/2018: Added line 1747 to assess penalty Fees for OAC License App.
 // 10/18/2018: Added relatePublicUserToLicense function 
 // 09/30/2018: cleared bug adding to Primary ASI values on renewal
 
@@ -1146,8 +1148,14 @@ function updateFeeFromASI(ASIField, FeeCode) {
 }
 
 function relayPaymentReceiveAfter() {
+	logDebug("you just called the relay payment received after function!");
+	var relayPayMsg = "";
+
     logDebug("Enter relayPaymentReceiveAfter()");    
     logDebug("");
+
+	relayPayMsg += "<br>" + "Enter relayPaymentReceiveAfter";
+	sendChadAnEmailofEnvVars("noreply@cityoflancasterca.org","INSIDE relayPayRecAfter function1", relayPayMsg);
 
     var url = "http://216.64.186.249/lancaster.cayenta.web/api/paymentreceive";
     logDebug("url: " + url);
@@ -1179,11 +1187,15 @@ function relayPaymentReceiveAfter() {
     }
     logDebug("End Environment Variables");
     logDebug("");
-
     var capId = getCapId();
     logDebug("capId: " + capId);
 
-    try{
+	relayPayMsg += "<br>" + "URL = "+url;
+	relayPayMsg += "<br>" + "capId = "+capId;
+	
+	sendChadAnEmailofEnvVars("noreply@cityoflancasterca.org","INSIDE relayPayRecAfter function2", relayPayMsg);
+
+	try{
 
         //Construct the transaction model that we'll be sending ot the REST endpoint
         var transactionModel = {
@@ -1253,7 +1265,7 @@ function relayPaymentReceiveAfter() {
 
         //    transactionModel.applicant = applicant;
         //} else {
-        //    aa.print(getCapScriptResult.getErrorMessage());
+        //    logDebug(getCapScriptResult.getErrorMessage());
         //}
 
         //Get the contacts
@@ -1272,13 +1284,30 @@ function relayPaymentReceiveAfter() {
             logDebug(getOwnerByCapIdScriptResult.getErrorMessage());
         }
 
+		relayPayMsg += "<br>" + "transactionModel created";
+		sendChadAnEmailofEnvVars("noreply@cityoflancasterca.org","INSIDE relayPayRecAfter function3", relayPayMsg);
+//logDebug("relay message is:"+relayPayMsg);
+//printObjProperties(transactionModel);
+
         //Create an instance of the ObjectMapper that we'll be using for serialization
         var objectMapper = new org.codehaus.jackson.map.ObjectMapper();   
 
         var transactionModelString = objectMapper.writeValueAsString(transactionModel);
-        logDebug("transactionModelString: " + transactionModelString);
+
+//logDebug("the tran model string is:"+transactionModelString);
+//printObjProperties(transactionModelString);
+
+
+//		relayPayMsg += "<br>" + "transactionModelString= " + transactionModelString;
+		relayPayMsg += "<br>" + "about to do the http post request";
+		sendChadAnEmailofEnvVars("noreply@cityoflancasterca.org","INSIDE relayPayRecAfter function4", relayPayMsg);
+        logDebug("about to do the http post request");
 
         doHttpPostRequest(login, password, url, transactionModelString, "application/json")
+
+		logDebug("just finished http post request!")
+		relayPayMsg += "<br>" + "just finished http post request!";
+		sendChadAnEmailofEnvVars("noreply@cityoflancasterca.org","INSIDE relayPayRecAfter function5", relayPayMsg);
 
     } catch (exception) {
 
@@ -1295,14 +1324,20 @@ function relayPaymentReceiveAfter() {
         try { message += "exception.stack: " + exception.stack + "\n"; } catch (_exception) { }
         try { message += "\n" + objectMapper.writeValueAsString(exception)  + "\n"; } catch(_exception) { }
 
-        logDebug(message);
+        logDebug("subject of error is :"+subject);
+		logDebug("error message is: "+message);
+		relayPayMsg += "<br>" + message;
+		sendChadAnEmailofEnvVars("noreply@cityoflancasterca.org","INSIDE relayPayRecAfter ERROR", relayPayMsg);
     }
-
-    aa.env.setValue("ScriptReturnCode", "1");
-    aa.env.setValue("ScriptReturnMessage", "relayPaymentReceiveAfter()");
+//    aa.env.setValue("ScriptReturnCode", "1");
+//    aa.env.setValue("ScriptReturnMessage", "relayPaymentReceiveAfter()");
 
     logDebug("");
     logDebug("Exit relayPaymentReceiveAfter()");
+
+	relayPayMsg += "<br>" + "Exit relayPaymentReceiveAfter()";
+
+	sendChadAnEmailofEnvVars("noreply@cityoflancasterca.org","INSIDE relayPayRecAfter function END", relayPayMsg);
 }
 
 function doHttpPostRequest(username, password, url, body, contentType) {
@@ -1714,11 +1749,12 @@ function getFeeCount(fCode) {
 	return retValue;
 }
 
+
 function calculateAppPenaltyFee() {													
 //This function updated to assess multiple Penalty Fees if ASI field "Start Date" is in the past. (Previous versions of this script in GitHub)
-         aa.print("Start - Function - calculateAppPenaltyFee_SLS");
+    aa.print("Start - Function - calculateAppPenaltyFee_SLS");
 	
-         penalizedSubGroup = "PG";
+    penalizedSubGroup = "PG";
 	var feeSchedule = aa.finance.getFeeScheduleByCapID(capId).getOutput()
 
 	baseFees = new Array();
@@ -1761,6 +1797,29 @@ function calculateAppPenaltyFee() {
 //	processingFees["Rental Housing"] = "RNTH100";
 	processingFees["Tobacco Retailer"] = "TOBCO011";
 	processingFees["Salon Rental"] = "SRNTL040";
+	
+	SBFees = new Array();
+	SBFees["General"] = "GEN050";
+	SBFees["Alcohol"] = "GEN050";
+	SBFees["Internet Lounge"] = "GEN050";
+	SBFees["Newsrack"] = "GEN050";
+	SBFees["Street Performer"] = "GEN050";
+	SBFees["Bingo"] = "BNGO020";
+	SBFees["Fortune Teller"] = "FRTL020";
+	SBFees["Group Home"] = "GH020";
+	SBFees["Massage Business Permit"] = "MSGO20";
+	SBFees["Massage Technician Permit"] = "MSGT020";
+	SBFees["Pawn Shop - Second Hand Dealer"] = "PWN020";
+	SBFees["Rental Housing"] = "RNTH030";
+	SBFees["Salon Rental"] = "SRNTL020";
+	SBFees["Taxi Driver"] = "TAXTOWD020";
+	SBFees["Vehicle for Hire Driver"] = "TAXTOWD020";
+	SBFees["Tow Driver"] = "TAXTOWD020";
+	SBFees["Taxi Owner"] = "TXIB020";
+	SBFees["Vehicle for Hire Owner"] = "TXIB020";
+	SBFees["Tobacco Retailer"] = "TOBCO020";
+	SBFees["Tow Owner"] = "TOWB020"
+
 
 	try {
 		var date1 = null;
@@ -1797,22 +1856,6 @@ function calculateAppPenaltyFee() {
 			logDebug("Penalized amount = " + penalizedAmount);
 			aa.print("Penalized amount = " + penalizedAmount);		
 
-//Add fees at all times: Processing Fees; 
-			if (matches(licType, "General", "Group Home")) {															                
-				aa.print("Matches App Type General or Group Home");//								
-				if (!nonProfit)  { 																					        			
-					aa.print("!nonProfit");//
-					//addFeeFromSchFromASI("# of People Working in Lancaster",renewFeeCode, renewFeeSchedule);
-					if (processingFees[licType]) addFee(processingFees[licType], feeSchedule, "FINAL", 1, "Y");			
-				}
-			}
-			else {																														
-				aa.print("DOES NOT Match App Type General or Group Home");//
-				if (processingFees[licType]) {
-					addFee(processingFees[licType], feeSchedule, "FINAL", 1, "Y");										                
-					aa.print("Processing Fee for this Lic Type Exists - adding fee");//
-				}
-			}
 
 			if (penalizedAmount > 0) {														
 				aa.print("Start - penalizedAmount >0");
@@ -1822,42 +1865,72 @@ function calculateAppPenaltyFee() {
 					if(monthsLate >= 3) {addFee("RHP030","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**1st 40%");}// 40%
 					if(monthsLate >= 4) {addFee("RHP040","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**1st 50%");}// 50%  
 				
-					if(monthsLate >= 13) {addFee("RHP010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**2nd 20%");}// 20% 
+					if(monthsLate >= 13) {
+						addFee("RHP010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**2nd 30%") 	// 20% 			
+						addFee(licenseFees[licType], feeSchedule, "FINAL", 1, "Y");							// License Fee 
+						addFee(processingFees[licType], feeSchedule, "FINAL", 1, "Y");						// Renewal Processing
+						addFee(SBFees[licType], feeSchedule, "FINAL", 1, "Y");								// SB1186 
+					}	
 					if(monthsLate >= 14) {addFee("RHP020","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**2nd 30%");}// 30%
 					if(monthsLate >= 15) {addFee("RHP030","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**2nd 40%");}// 40%
 					if(monthsLate >= 16) {addFee("RHP040","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**2nd 50%");}// 50%  
 				
-					if(monthsLate >= 25) {addFee("RHP010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**3rd 20%");}// 20%
+					if(monthsLate >= 25) {
+						addFee("RHP010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**3rd 20%");	// 20%
+						addFee(licenseFees[licType], feeSchedule, "FINAL", 1, "Y");							// License Fee 
+						addFee(processingFees[licType], feeSchedule, "FINAL", 1, "Y");						// Renewal Processing
+						addFee(SBFees[licType], feeSchedule, "FINAL", 1, "Y");								// SB1186 
+					}
 					if(monthsLate >= 26) {addFee("RHP020","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**3rd 30%");}// 30%
 					if(monthsLate >= 27) {addFee("RHP030","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**3rd 40%");}// 40%
 					if(monthsLate >= 28) {addFee("RHP040","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**3rd 50%");}// 50%
 				
-					if(monthsLate >= 37) {addFee("RHP010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 20%");}// 20%
+					if(monthsLate >= 37) {
+						addFee("RHP010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 20%");	// 20%
+						addFee(licenseFees[licType], feeSchedule, "FINAL", 1, "Y");							// License Fee 
+						addFee(processingFees[licType], feeSchedule, "FINAL", 1, "Y");						// Renewal Processing
+						addFee(SBFees[licType], feeSchedule, "FINAL", 1, "Y");								// SB1186 
+					}						
 					if(monthsLate >= 38) {addFee("RHP020","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 30%");}// 30%
 					if(monthsLate >= 39) {addFee("RHP030","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 40%");}// 40%
-					if(monthsLate >= 40) {addFee("RHP040","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 50%");}// 50%    
-				}
+					if(monthsLate >= 40) {addFee("RHP040","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 50%");}// 50% 
+				}   
 				else{			
 					if(monthsLate >= 1) {addFee("BLPN010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**1st 20%");} // 20%
 					if(monthsLate >= 2) {addFee("BLPN020","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**1st 30%");} // 30%
 					if(monthsLate >= 3) {addFee("BLPN030","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**1st 40%");} // 40%
 					if(monthsLate >= 4) {addFee("BLPN040","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**1st 50%");} // 50%
 				
-					if(monthsLate >= 13) {addFee("BLPN010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**2nd 20%");} // 20%
+					if(monthsLate >= 13) {
+						addFee("BLPN010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**2nd 20%"); 	// 20%
+						addFee(licenseFees[licType], feeSchedule, "FINAL", 1, "Y");							// License Fee 
+						addFee(processingFees[licType], feeSchedule, "FINAL", 1, "Y");						// Renewal Processing
+						addFee(SBFees[licType], feeSchedule, "FINAL", 1, "Y");								// SB1186 
+					}						
 					if(monthsLate >= 14) {addFee("BLPN020","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**2nd 30%");} // 30%
 					if(monthsLate >= 15) {addFee("BLPN030","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**2nd 40%");} // 40%
 					if(monthsLate >= 16) {addFee("BLPN040","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**2nd 50%");} // 50%
 				
-					if(monthsLate >= 25) {addFee("BLPN010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**3rd 20%");} // 20%
+					if(monthsLate >= 25) {
+						addFee("BLPN010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**3rd 20%");	// 20%
+						addFee(licenseFees[licType], feeSchedule, "FINAL", 1, "Y");							// License Fee 
+						addFee(processingFees[licType], feeSchedule, "FINAL", 1, "Y");						// Renewal Processing
+						addFee(SBFees[licType], feeSchedule, "FINAL", 1, "Y");								// SB1186 
+					}						
 					if(monthsLate >= 26) {addFee("BLPN020","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**3rd 30%");} // 30%
 					if(monthsLate >= 27) {addFee("BLPN030","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**3rd 40%");} // 40%
 					if(monthsLate >= 28) {addFee("BLPN040","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**3rd 50%");} // 50%
 				
-					if(monthsLate >= 37) {addFee("BLPN010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 20%");} // 20%
+					if(monthsLate >= 37) {
+						addFee("BLPN010","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 20%"); 	// 20%
+						addFee(licenseFees[licType], feeSchedule, "FINAL", 1, "Y");							// License Fee 
+						addFee(processingFees[licType], feeSchedule, "FINAL", 1, "Y");						// Renewal Processing
+						addFee(SBFees[licType], feeSchedule, "FINAL", 1, "Y");								// SB1186 
+					}					
 					if(monthsLate >= 38) {addFee("BLPN020","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 30%");} // 30%
 					if(monthsLate >= 39) {addFee("BLPN030","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 40%");} // 40%
 					if(monthsLate >= 40) {addFee("BLPN040","BL_PENALTY","FINAL",penalizedAmount,"Y"); aa.print("**4th 50%");} // 50%
-				} 						
+				 }						
 			}	aa.print("End - penalizedAmount >0");	 																																															aa.print("line 189");//
 		} 																												
 	} catch (err) { 
@@ -1865,6 +1938,8 @@ function calculateAppPenaltyFee() {
 		aa.print("Error calculating penalty fee : " + err); 
 	}	aa.print("End - Function - calculateAppPenaltyFee_SLS");																												
 }
+
+
 
 
 function getParentCapVIAPartialCap(capid)
@@ -3639,4 +3714,69 @@ function addObjPropertiesToMsg(obj){
         }
     }
   return thisMsg;
+}
+
+function getAddressParam4Notification(params){
+	//Added 3/28/19 by SLS	
+	var recordAddress = "";
+	var recAddress = aa.address.getAddressByCapId(capId);
+	
+	if (recAddress.getSuccess()) {
+		var recAdd = recAddress.getOutput();
+		
+		for(ad in recAdd){
+			var thisAddress = recAdd[ad];							
+			logDebug("Record Address: "+thisAddress);
+			
+			addParameter(params, "$$recordAddress$$", thisAddress);			
+		} 
+	}	
+	return params;
+}
+
+
+
+function sendChadAnEmailofEnvVars(emlFrom, emlSubj) {
+	var emlMsg = "";
+
+	if (arguments.length > 2) emlMsg = arguments[2];
+
+	var emlContent = "" + emlMsg;
+	
+    emlContent += "<br>"+"Begin Globals";
+    for (variableIndex in this) {
+        var variable = this[variableIndex];
+        if (typeof variable != "function") {
+            emlContent += "<br>"+variableIndex + ":" + variable;
+        }
+    }
+    emlContent += "<br>"+"End Globals";
+    emlContent += "<br><br>______________________________________________<br><br>";
+
+    //Echo the environment variables
+    emlContent += "<br>"+"Begin Environment Variables";
+    var paramValues = aa.env.getParamValues();
+    var keys = paramValues.keys();
+    while (keys.hasNext()) {
+        var key = keys.next();
+        var value = paramValues.get(key);
+        emlContent += "<br>"+key + ":" + value;
+    }
+    emlContent += "<br>"+"End Environment Variables";
+    emlContent += "<br>"+"";
+	
+	var rightNow = new Date();
+	var rightNowF =	rightNow.getFullYear() + "-" +
+					("0" + rightNow.getMonth()+1	).slice(-2) + "-" +
+					("0" + rightNow.getDate()	).slice(-2) + " " +
+					("0" + rightNow.getHours()	).slice(-2) + ":" +
+					("0" + rightNow.getMinutes()).slice(-2) + ":" +
+					("0" + rightNow.getSeconds()).slice(-2) + "." +
+					rightNow.getMilliseconds();
+
+	
+	aa.sendMail(emlFrom, "chad@slsgov.com", "",  rightNowF + " - " + capIDString + "::SUPP::" + emlSubj, emlContent);
+	logDebug("emlFrom:"+emlFrom);
+	logDebug("subj:"+rightNowF + " - " + capIDString + "::" + emlSubj);
+	logDebug("message:"+emlContent);
 }
