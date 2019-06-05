@@ -1,3 +1,4 @@
+// 06/05/2019: Added getRecordParams4Notification and addParameter for ECR record payment problem in aca (actually notification was probably failing)
 // 04/02/2019: adding sendChadAnEmailofEnvVars(emlFrom, emlSubj) to debug the relayPayment functions.  Will remove when done.
 // 03/27/2019: add function getAddressParam4Notification() (replaces getPrimaryAddressLineParam4Notification() in some instances)
 // 03/18/2019: Updated Function calculateAppPenaltyFee() to assess Rental Housing Penalty Fees.
@@ -3780,3 +3781,61 @@ function sendChadAnEmailofEnvVars(emlFrom, emlSubj) {
 	logDebug("subj:"+rightNowF + " - " + capIDString + "::" + emlSubj);
 	logDebug("message:"+emlContent);
 }
+
+// 06-05-2019 SLS
+// Copied getRecordParams4Notification from version 9.3.6 for city of lancaster as they are not on a version
+// of the includes_accela_functions that has this standard maaster script function in it.
+// this has been causing a error in EMSE scripts that call this function (ECR aca payments was fist to notice it)
+
+function getRecordParams4Notification(params) {
+	itemCapId = (arguments.length == 2) ? arguments[1] : capId;
+	// pass in a hashtable and it will add the additional parameters to the table
+
+	var itemCapIDString = itemCapId.getCustomID();
+	var itemCap = aa.cap.getCap(itemCapId).getOutput();
+	var itemCapName = itemCap.getSpecialText();
+	var itemCapStatus = itemCap.getCapStatus();
+	var itemFileDate = itemCap.getFileDate();
+	var itemCapTypeAlias = itemCap.getCapType().getAlias();
+	var itemHouseCount;
+	var itemFeesInvoicedTotal;
+	var itemBalanceDue;
+	
+	var itemCapDetailObjResult = aa.cap.getCapDetail(itemCapId);		
+	if (itemCapDetailObjResult.getSuccess())
+	{
+		itemCapDetail = capDetailObjResult.getOutput();
+		itemHouseCount = itemCapDetail.getHouseCount();
+		itemFeesInvoicedTotal = itemCapDetail.getTotalFee();
+		itemBalanceDue = itemCapDetail.getBalance();
+	}
+	
+	var workDesc = workDescGet(itemCapId);
+
+	addParameter(params, "$$altID$$", itemCapIDString);
+	addParameter(params, "$$capName$$", itemCapName);
+	addParameter(params, "$$recordTypeAlias$$", itemCapTypeAlias);
+	addParameter(params, "$$capStatus$$", itemCapStatus);
+	addParameter(params, "$$fileDate$$", itemFileDate);
+	addParameter(params, "$$balanceDue$$", "$" + parseFloat(itemBalanceDue).toFixed(2));
+	addParameter(params, "$$workDesc$$", (workDesc) ? workDesc : "");
+
+	return params;
+}
+// 06-05-2019 SLS
+// Copied addParameter from version 9.3.6 for city of lancaster as they are not on a version
+// of the includes_accela_functions that has this standard maaster script function in it.
+// this has been causing a error in EMSE scripts that call this function (ECR aca payments was fist to notice it)
+function addParameter(pamaremeters, key, value)
+{
+	if(key != null)
+	{
+		if(value == null)
+		{
+			value = "";
+		}
+		pamaremeters.put(key, value);
+	}
+}
+
+
